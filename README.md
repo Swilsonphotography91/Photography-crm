@@ -1,4 +1,3 @@
-
 # Steven Wilson Photography CRM
 
 A clean, self-hosted CRM built specifically for a photography business.
