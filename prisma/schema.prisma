@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("admin") // admin | staff
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id          String    @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  postcode    String?
+  notes       String?
+  status      String    @default("lead") // lead | booked | completed | past
+  source      String?   // how they found you
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings    Booking[]
+  invoices    Invoice[]
+  notesList   Note[]
+}
+
+model Package {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  depositPct  Float    @default(10) // percentage
+  hours       Float?   // coverage hours
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings    Booking[]
+}
+
+model Booking {
+  id              String    @id @default(cuid())
+  clientId        String
+  packageId       String?
+  title           String    // e.g. "Smith Wedding"
+  type            String    @default("wedding") // wedding | portrait | family | event | commercial
+  status          String    @default("inquiry") // inquiry | quoted | deposit_paid | booked | completed | cancelled | delivered
+  
+  eventDate       DateTime?
+  startTime       String?
+  endTime         String?
+  ceremonyVenue   String?
+  receptionVenue  String?
+  location        String?
+  
+  totalPrice      Float?
+  depositAmount   Float?
+  depositPaid     Boolean   @default(false)
+  balanceDue      Float?
+  balancePaid     Boolean   @default(false)
+  
+  notes           String?
+  contractSent    Boolean   @default(false)
+  contractSigned  Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  package         Package?  @relation(fields: [packageId], references: [id])
+  invoices        Invoice[]
+  payments        Payment[]
+  notesList       Note[]
+}
+
+model Invoice {
+  id          String    @id @default(cuid())
+  clientId    String
+  bookingId   String?
+  number      String    // INV-2026-001
+  type        String    // deposit | final | other
+  amount      Float
+  status      String    @default("draft") // draft | sent | paid | overdue | cancelled
+  dueDate     DateTime?
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  booking     Booking?  @relation(fields: [bookingId], references: [id])
+  payments    Payment[]
+}
+
+model Payment {
+  id          String    @id @default(cuid())
+  invoiceId   String?
+  bookingId   String?
+  amount      Float
+  method      String    // bank_transfer | cash | card | paypal | other
+  reference   String?
+  paidAt      DateTime  @default(now())
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  invoice     Invoice?  @relation(fields: [invoiceId], references: [id])
+  booking     Booking?  @relation(fields: [bookingId], references: [id])
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  description String
+  amount      Float
+  category    String?   // gear | travel | marketing | software | other
+  date        DateTime  @default(now())
+  bookingId   String?   // optional link to a job
+  notes       String?
+  createdAt   DateTime  @default(now())
+}
+
+model Note {
+  id          String    @id @default(cuid())
+  content     String
+  clientId    String?
+  bookingId   String?
+  createdAt   DateTime  @default(now())
+
+  client      Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  bookingId   String?
+  clientId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
